@@ -93,8 +93,36 @@ All of it is 386 code on the disc: the port can run it recompiled, as the
 78,496 bytes, an MZ executable: "386|DOS-Extender Version 1.2aJ L50,
 Copyright (C) 1986-1991 Phar Lap Software, Inc. and Fujitsu Ltd." Its
 descriptors are built at run time (no table of the Towns' addresses in the
-file); how it builds the selectors 0x104, 0x110 and 0x130 on each machine
-is the next thing to read in it.
+file). Read instead from the machines running (session 2:
+`tools/oracle.py --dump 20` on `fmtowns` and `fmtmarty`, then
+`python -m fmtownskit.mamedump`):
+
+* **Paging is on, on both machines.** On the Towns the hardware's pages
+  map 1:1; on the Marty RUN386 maps the Towns' high addresses onto the
+  Marty's 24-bit ones (0x80000000 to 0xA00000, 0x81000000 to 0xC00000,
+  0xC2000000 to 0x600000, ...). The descriptors are **the same, base for
+  base, on both**: the program sees one machine.
+* The program's selectors (LDT): **0x0C code and 0x14 data, base
+  0x200000, limit 0x13FFF** -- the image (0x11F17) and the stack to
+  0x13F20, 80 KB in all; at physical 0x49000 on the Towns, 0x47000 on the
+  Marty. In RAM its code is the file's byte for byte (4.9 KB of data
+  differ, set by the program). 0x104 is VRAM at 0x80000000 (512 KB), 0x10C
+  VRAM single-layer at 0x80100000, 0x114 sprite RAM at 0x81000000; the
+  ten memory blocks of int 21h AH=48h are LDT 0x44 to 0x8C (256, 128,
+  128, 128, 24, 32, 20, 96, 96 and 64 KB, linear 0x214000 up).
+* The system's (GDT): **0x110 code and 0x118 data, base 0x100000**:
+  TBIOS, the table at its 0; 0x130 sprite RAM (128 KB); 0x138 the font
+  ROM, 0x140 the PCM wave RAM window, 0x148 the OS ROM, 0x100/0x108 the
+  system ROM, 0x40 all of RAM.
+* **The TBIOS differs**: on the Towns, the RAM at 0x100000 is the disc's
+  `TBIOS.BIN` (limit 0x16FFF, its size) but for 265 bytes of data the
+  load fills in (among them `fs:[0x98]` = 0x387C, in the graphic module).
+  On the Marty it is **not the disc's**: the same version and modules
+  (V31L31 92/11/11), from the sprite module on 16 bytes lower, with 8 KB more
+  (limit 0x18FFF) holding wrappers -- `fs:[0x20]` lands at 0x17BE0, which
+  calls the graphic module's 0xD20 -- and it is in the Marty's ROM
+  (`MAR_EX1.ROM` at 0x19C00). The port runs the disc's: the Towns path,
+  no ROM needed.
 
 ## The others
 

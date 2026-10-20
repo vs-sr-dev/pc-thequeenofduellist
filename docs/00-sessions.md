@@ -31,3 +31,19 @@
 
 Both repositories put under git at the end: fmtownskit at a5910f2, a
 submodule of this port at `fmtownskit/`.
+
+## Session 2 (2026-10-20): the machines read running; the 386 recompiler, checked
+
+* **RUN386 on both machines** (MAME dumps, `fmtownskit.mamedump`): paging on, on both;
+  the Towns' high pages 1:1, the Marty's remapped onto its 24-bit addresses; the
+  descriptors the same base for base. The game's image at linear 0x200000, its code the
+  file's byte for byte. The Towns runs the disc's `TBIOS.BIN`; the Marty runs its own
+  ROM's build of the same version (`03-executables.md`). The port runs the disc's: the
+  Towns path, no ROM.
+* **fmtownskit's 386 recompiler** (`09-recompiler.md`): the decoder (0 differences from
+  capstone on 24,023 instructions of the game and TBIOS), the interpreter (0 differences
+  from unicorn on 246,261 vectors), discovery (the game 157 functions, TBIOS 355, both
+  without conflicts, after TBIOS's jump tables taught it which comparison bounds a table),
+  the emitter and the runtime's CPU, and the self-test: the optest 22,340 vectors, the
+  game's functions 135, TBIOS's 682, **0 failures**.
+* The oracle dumps state and RAM (`tools/oracle.py --dump SECONDS`).

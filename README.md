@@ -6,8 +6,10 @@ code to C++ on fmtownskit (a submodule at
 `fmtownskit/`; `git clone --recursive`). **BYOA**: nothing from the disc
 is in this repository; you bring your own.
 
-Status: **session 1** -- the disc identified and read, the program's
-surface mapped, the plan written. Nothing runs natively yet.
+Status: **session 2** -- the disc identified and read, RUN386's set-up read
+on a running Towns and Marty, and the game's and TBIOS's code recompiled to
+C++ and held against a reference interpreter (0 failures). The machine under
+it is the next step: nothing draws natively yet.
 
 ## The disc
 
@@ -21,13 +23,18 @@ python -m fmtownskit.disc "disc/Queen of Duellist, The (Japan) (Rev A).cue"
 python -m fmtownskit.disc "disc/Queen of Duellist, The (Japan) (Rev A).cue" --extract build/disc
 python -m fmtownskit.x86map build/disc/DUEL.EXP --seed 103e2,c0b8,c124
 python tools/oracle.py --machine fmtmarty --at 5-120/5    # MAME, CHDMAN, FMT_ROMS
+python tools/oracle.py --machine fmtowns --dump 20        # CPU state and RAM, for fmtownskit.mamedump
+python -m fmtownskit.recomp --out build/recomp --exp duel=build/disc/DUEL.EXP@0c+103e2,c0b8,c124 \
+    --raw tbios=build/disc/TBIOS.BIN@110:20-100 --optest --selftest 3
+cmake -S build/recomp -B build/recomp/b -G Ninja -DCMAKE_CXX_COMPILER=clang++
+ninja -C build/recomp/b && build/recomp/b/selftest build/recomp/selftest/*.txt
 ```
 
 ## Documents
 
 `docs/00-sessions.md` (the log), `01-disc-layout.md`, `02-data-formats.md`,
 `03-executables.md`, `04-curiosities.md`, `05-open-questions.md`,
-`06-attack-plan.md`, `07-next-session.md`, `10-fmtownskit.md`.
+`06-attack-plan.md`, `07-next-session.md`, `09-recompiler.md`, `10-fmtownskit.md`.
 
 ## Licence
 

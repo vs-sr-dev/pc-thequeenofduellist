@@ -1,23 +1,33 @@
 # 07 - Next session
 
-Goal: **the selectors and the load read on both machines, then the 386
-decoder and interpreter in fmtownskit.**
+Goal: **the runtime's machine, headless, until the game draws its first
+picture** -- the Agumix logo -- and the frame matches the oracle's.
 
-1. RUN386: find where it builds its descriptors (MZ, real mode then
-   protected; the strings "FDOSXT2", "DOSNAD02" are landmarks); the bases
-   and limits of 0x14, 0x104, 0x110, 0x118, 0x130 on the Towns and the
-   Marty. Confirm in MAME: a Lua script that stops at DUEL.EXP's entry
-   (0xA7F0 in CS) and dumps the GDT/LDT and the image (the oracle's memory
-   read), on `fmtowns` and on `fmtmarty`.
-2. TBIOS's load: what `TBIOS.SYS` does with `TBIOS.BIN` (the table's
-   pointers at 0x60-0xA0 are already in the file; what sets 0x118).
-3. fmtownskit `x86`: the decoder, checked against capstone on every
-   instruction the descent reaches in DUEL.EXP and TBIOS.BIN (seeded from
-   the module entries and their AH jump tables).
-4. fmtownskit `x86emu`: the interpreter, checked against unicorn (random
-   states; the flags the 386 leaves undefined set aside and listed).
-5. If time remains: discovery over both programs and the first emitted C++.
+1. The boot as RUN386 leaves it: the game's image at linear 0x200000 under
+   selectors 0x0C/0x14 (80 KB, stack top 0x13F20), the disc's TBIOS at
+   0x100000 under 0x110/0x118 with its table filled as the Towns' load
+   leaves it (the 265 bytes that differ: read them in the Towns dump of
+   session 2, `build/oracle/dump_fmtowns_20`), the LDT/GDT selectors of
+   `towns.SELECTORS` as bases, the registers at the entry as RUN386 sets
+   them (a dump at the entry: a Lua breakpoint on CS=0x0C, EIP=0xA7F0).
+2. The services, each from what the game and TBIOS ask (`03-executables.md`):
+   int 21h's nine DOS functions over the disc image (`fmtownskit.disc`'s
+   reader in C++, Q: the CD), Phar Lap's six, int 93h's CD-DA calls, int
+   FDh; the real-mode routine at the image's start (int 23h/24h) answered
+   as nothing to do.
+3. The machine under TBIOS: VRAM (512 KB, both access windows), the CRTC
+   and video output registers, the sprite RAM and controller, the palettes;
+   a frame as a PNG from the CRTC's layers. Then the PICs, the timer, VSYNC
+   (IRQ11) and the sound IRQ (13) with the YM3438 timers, delivered at safe
+   points.
+4. Compare the logo, the title and the attract fight with the oracle's
+   frames (`tools/oracle.py --machine fmtowns --at ...`).
 
-Tools: `tools/oracle.py --machine fmtowns|fmtmarty --at ...` (set MAME,
-CHDMAN, FMT_ROMS); `python -m fmtownskit.x86map build/disc/DUEL.EXP --seed
-103e2,c0b8,c124`.
+The step limit makes the game's own vectors few (135 of 471 runs): a
+second seed and a higher `--limit` are cheap once the machine stubs answer
+the interrupts the runs stop at.
+
+Tools: `tools/oracle.py --dump SECONDS` (state and RAM) and
+`python -m fmtownskit.mamedump DIR`; the recompiler as `09-recompiler.md`
+shows; MSYS2's clang, CMake and Ninja on PATH (`export
+PATH=/c/msys64/mingw64/bin:$PATH`).

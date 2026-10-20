@@ -1,9 +1,8 @@
 # 05 - Open questions
 
-1. **RUN386's selectors**: where 0x104, 0x110, 0x118 and 0x130 point on the
-   Towns and on the Marty, their limits, and what else RUN386 gives a
-   program (the 0x14 segment's size; the extra pages the P3 header's
-   0x2009 asks for).
+1. ~~RUN386's selectors~~ -- answered in session 2 (`03-executables.md`).
+   Still open: what the P3 header's 0x2009 "extra pages" mean, and the
+   wrappers in the Marty's TBIOS (8 KB: what they change for the Marty).
 2. **The screen mode**: which CRTC mode the game sets (MAME's snapshots are
    704x525, the raw frame), the layers' colour depths (the `.PX` pictures
    are 16-colour, *inferred*), and what the scroll writes to CRTC

@@ -18,3 +18,17 @@ which the kit keys by machine.
 
 Checked on this disc only (the first). Kit at **a5910f2**, the submodule
 at `fmtownskit/`.
+
+## Session 2
+
+| Change | What this game asked of it |
+|---|---|
+| `mamedump` | a running machine read from MAME's state and RAM: the page walk, GDT and LDT, bytes found -- to read RUN386's selectors on the Towns and the Marty |
+| `towns.SELECTORS`, `PAGES_MARTY` | the selectors as both machines have them (the same), the Marty's page mappings; the README's "one machine for RUN386" and the Marty's TBIOS from its ROM |
+| `x86map` | jump tables, `--raw` images from a far-pointer table (TBIOS), `--mnemonics` |
+| `i386` | the 386 decoder, `--check` against capstone, `--sweep` of random bytes |
+| `i386emu` | the interpreter, `--test`, `--check`/`--sweep` against unicorn |
+| `recomp` (`discover`, `emit`, `selftest`, `__main__`) | the recompiler: functions and bodies, tables bounded or read and pruned, C++ per function, the vectors and the optest |
+| `runtime/x86*` | the CPU for recompiled code, the flags' helpers, modules, the self-test (with `-DX86_TRACE_ON` a trace per instruction) |
+
+Kit at the session's commit: see `git -C fmtownskit log -1`.
