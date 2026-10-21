@@ -32,3 +32,18 @@ at `fmtownskit/`.
 | `runtime/x86*` | the CPU for recompiled code, the flags' helpers, modules, the self-test (with `-DX86_TRACE_ON` a trace per instruction) |
 
 Kit at the session's commit: see `git -C fmtownskit log -1`.
+
+## Session 3
+
+| Change | What this game asked of it |
+|---|---|
+| `runtime/towns.h`, `towns_mem` | linear memory as RUN386 leaves it (host pages for RAM, sprite RAM and VRAM while its write mask is all ones; the masked writes, the single-layer window, the PCM wave RAM's bank, the font ROM one byte at a time), the descriptors, the machine as TownsOS hands it over (CRTC, palettes, video and PIC state read at the program's first instruction) |
+| `towns_cpu` | far calls and returns between the program and TBIOS as C++ calls, calls through a register by code selector, `int`, the program's protected-mode handlers taken at safe points |
+| `towns_io` | the ports the game and TBIOS touch (MAME's meanings), level-triggered PICs in special fully nested mode, VSYNC and the beam for CRTC register 30, the microsecond counter, the sprite controller's flip and drawing, the RF5C68's channels and the PCM interrupt, the YM3438 as registers |
+| `towns_video` | the sprite controller's drawing and the frame composed as MAME's `screen_update`; a PNG writer |
+| `towns_dos` | int 21h (DOS files over the disc image and a host directory, memory blocks as RUN386 places them, Phar Lap 0Dh/0Eh/0Fh/11h/06h), the CD BIOS's 50h/52h/54h, RUN386's start of a P3 program |
+| `towns_disc` | the cue sheet, the data track and the audio sectors, ISO 9660 paths |
+| `towns.cmake` | the runtime as a library for a port's CMake |
+
+Checked by the game's frames against the oracle's (`11-runtime.md`): the logo, the opening
+and the title, pixel for pixel.

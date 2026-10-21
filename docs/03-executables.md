@@ -53,9 +53,24 @@ Marty.
    2511h, then AX=52C0h) up to five times; if that fails, or if
    `Q:\AGUMIX.PX` does not open, it sets [0x20BA]=0xFFFF, [0x63D]=4,
    [0x61D]=0xA0 -- *inferred*: the limited version `DUELTWN.TXT` describes;
-4. memory (int 21h AH=48h, eight blocks), TBIOS set-up, the sound IRQ
-   (0x103A8: int 4Dh hooked with 2506h, IRQ13 unmasked in port 0x12), then
-   the logo and the main loop.
+4. memory (int 21h AH=48h, ten blocks: eight in 0xB6D5, two in 0x100AA),
+   TBIOS set-up, the sound IRQ (0x103A8: int 4Dh hooked with 2506h, IRQ13
+   unmasked in port 0x12) -- all of it in fact before the drive test
+   (0xB6D5 is called at 0xA801: the order of a run, session 3) --, then the
+   logo and the main loop.
+
+The CD BIOS calls, as the runtime answers them (session 3, `11-runtime.md`):
+**54h** fills the real-mode buffer at DS:DI with the table of contents --
++0 3 (*not understood*), +1 the first track, +2 the last, +3 the lead-out's
+MSF, then each track's MSF from +6, binary, counting the 2-second lead-in,
+the data track's minute with bit 7 set (read in the oracle's buffer);
+**50h** plays from the MSF at DS:DI to the one at DS:DI+3 (CX=0xFE01; the
+game ends a track at the frame before the next one starts); **52h** stops.
+AH=0 back is done. The opening and the title play track 10.
+
+The opening is five routines called one after the other through `call
+eax` from a null-ended list of pointers at 0x980E: 0x11322, 0x11476,
+0x111CD, 0x1157F, 0x10FF6 (discovery's seeds since session 3).
 
 ### The sound interrupt (0x103E2)
 
@@ -115,8 +130,10 @@ file). Read instead from the machines running (session 2:
   ROM, 0x140 the PCM wave RAM window, 0x148 the OS ROM, 0x100/0x108 the
   system ROM, 0x40 all of RAM.
 * **The TBIOS differs**: on the Towns, the RAM at 0x100000 is the disc's
-  `TBIOS.BIN` (limit 0x16FFF, its size) but for 265 bytes of data the
-  load fills in (among them `fs:[0x98]` = 0x387C, in the graphic module).
+  `TBIOS.BIN` (limit 0x16FFF, its size) but for 265 bytes of data
+  (among them `fs:[0x98]` = 0x387C, in the graphic module) -- which, read
+  at the program's first instruction in session 3, are not the load's: there
+  TBIOS is the file byte for byte, and the game's calls set those bytes.
   On the Marty it is **not the disc's**: the same version and modules
   (V31L31 92/11/11), from the sprite module on 16 bytes lower, with 8 KB more
   (limit 0x18FFF) holding wrappers -- `fs:[0x20]` lands at 0x17BE0, which

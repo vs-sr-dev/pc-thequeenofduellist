@@ -49,8 +49,105 @@ emu.register_frame_done(function()
     local sp, r = cpu.spaces["program"], io.open("ram.bin", "wb")
     for a = 0, size - 1, 0x10000 do r:write(sp:read_range(a, a + 0xffff, 8)) end
     r:close()
+    dump_items()
+    dump_ports()
     manager.machine:exit()
 end)
+"""
+
+# At the first write of VALUE to physical ADDR, in protected mode with paging on: the
+# CPU state and physical RAM at that very instruction (a program's first `call` at its
+# entry pushes its return address: the state RUN386 hands the program, but for ESP).
+WRITE_LUA = """local addr, value, size, done = 0x%x, 0x%x, %d, false
+local cpu = manager.machine.devices[":maincpu"]
+local sp = cpu.spaces["program"]
+tap = sp:install_write_tap(addr, addr + 3, "oracle", function(offset, data, mask)
+    if done or offset ~= addr or (data & mask) ~= value then return end
+    if (cpu.state["CR0"].value & 0x80000001) ~= 0x80000001 then return end
+    done = true
+    local f = io.open("state.txt", "w")
+    for k, v in pairs(cpu.state) do f:write(string.format("%%s=%%x\\n", k, v.value)) end
+    f:write(string.format("TIME=%%x\\n", math.floor(manager.machine.time.seconds * 1000)))
+    f:close()
+    local r = io.open("ram.bin", "wb")
+    for a = 0, size - 1, 0x10000 do r:write(sp:read_range(a, a + 0xffff, 8)) end
+    r:close()
+    dump_items()
+    dump_ports()
+    manager.machine:exit()
+end)
+"""
+
+# Every device's save-state items (MAME's own state of the machine: the CRTC's and video
+# registers, palettes, the PICs, the sound chips...): small ones as hex in items.txt, large
+# ones (VRAM, sprite RAM) each to a file of its own. Read with fmtownskit.mamedump --items.
+ITEMS_LUA = """
+local function dump_items()
+    local f, n = io.open("items.txt", "w"), 0
+    for tag, dev in pairs(manager.machine.devices) do
+        for name, index in pairs(dev.items) do
+            local it = emu.item(index)
+            local bytes = it.size * it.count
+            if bytes > 0 then
+                local data = it:read_block(0, bytes)
+                if bytes <= 4096 then
+                    f:write(string.format("%%s/%%s %%d %%d %%s\\n", tag, name, it.size, it.count,
+                        (data:gsub(".", function(ch) return string.format("%%02x", ch:byte()) end))))
+                else
+                    n = n + 1
+                    local b = io.open(string.format("item%%d.bin", n), "wb")
+                    b:write(data)
+                    b:close()
+                    f:write(string.format("%%s/%%s %%d %%d @item%%d.bin\\n", tag, name, it.size, it.count, n))
+                end
+            end
+        end
+    end
+    f:close()
+end
+"""
+
+# The video hardware's registers, read through its ports (the driver's own save items are
+# under a module name with a slash, which hides them from Lua's device.items): the CRTC's 32,
+# the video output's 2, the sprite controller's 8, the VRAM write mask, the FM-R registers,
+# the three palettes (each selected in turn through video register 1, then put back).
+PORTS_LUA = """
+local function dump_ports()
+    local io = manager.machine.devices[":maincpu"].spaces["io"]
+    local out = {}
+    local function put(s) out[#out + 1] = s end
+    local sel = io:read_u8(0x440)
+    for r = 0, 31 do
+        io:write_u8(0x440, r)
+        put(string.format("crtc %%d %%02x%%02x", r, io:read_u8(0x443), io:read_u8(0x442)))
+    end
+    io:write_u8(0x440, sel)
+    local vsel = io:read_u8(0x448)
+    local vreg = {}
+    for r = 0, 1 do io:write_u8(0x448, r); vreg[r] = io:read_u8(0x44a); put(string.format("vreg %%d %%02x", r, vreg[r])) end
+    local ssel = io:read_u8(0x450)
+    for r = 0, 7 do io:write_u8(0x450, r); put(string.format("sprite %%d %%02x", r, io:read_u8(0x452))) end
+    io:write_u8(0x450, ssel)
+    local msel = io:read_u8(0x458)
+    for r = 0, 1 do io:write_u8(0x458, r); put(string.format("mask %%d %%02x %%02x", r, io:read_u8(0x45a), io:read_u8(0x45b))) end
+    io:write_u8(0x458, msel)
+    put(string.format("ff81 %%02x", io:read_u8(0xff81)))
+    put(string.format("ff82 %%02x", io:read_u8(0xff82)))
+    put(string.format("ff83 %%02x", io:read_u8(0xff83)))
+    local psel = io:read_u8(0xfd90)
+    for _, pal in ipairs({{"pal16_0", 0x00, 16}, {"pal16_1", 0x20, 16}, {"pal256", 0x10, 256}}) do
+        io:write_u8(0x448, 1); io:write_u8(0x44a, (vreg[1] & 0xcf) | pal[2])
+        for i = 0, pal[3] - 1 do
+            io:write_u8(0xfd90, i)
+            put(string.format("%%s %%d %%02x %%02x %%02x", pal[1], i, io:read_u8(0xfd94), io:read_u8(0xfd96), io:read_u8(0xfd92)))
+        end
+    end
+    io:write_u8(0x448, 1); io:write_u8(0x44a, vreg[1]); io:write_u8(0x448, vsel)
+    io:write_u8(0xfd90, psel)
+    local h = _G.io.open("ports.txt", "w")
+    h:write(table.concat(out, "\\n"), "\\n")
+    h:close()
+end
 """
 
 
@@ -83,31 +180,46 @@ def main():
     ap.add_argument('--out', help='output directory (default build/oracle/<machine>, or dump_<machine>_<t>)')
     ap.add_argument('--dump', type=float, metavar='SECONDS',
                     help='instead of snapshots: state.txt and ram.bin (read with fmtownskit.mamedump)')
+    ap.add_argument('--dump-write', metavar='ADDR=VALUE',
+                    help='instead of snapshots: state.txt and ram.bin at the first write of VALUE to '
+                         'physical ADDR (hex; a dword), in protected mode with paging on')
     ap.add_argument('--ram', type=lambda x: int(x, 0), default=0x200000, help='bytes of RAM to dump')
     a = ap.parse_args()
+    if a.dump_write:
+        wa, _, wv = a.dump_write.partition('=')
+        a.dump_write = (int(wa, 16), int(wv, 16))
     mame = tool('MAME', 'mame')
     work = os.path.join(ROOT, 'build', 'oracle')
     os.makedirs(work, exist_ok=True)
     if not os.path.exists(CHD):
         subprocess.check_call([tool('CHDMAN', 'chdman'), 'createcd', '-i', CUE, '-o', CHD])
     roms = os.environ.get('FMT_ROMS', os.path.join(ROOT, 'bios'))
-    if a.dump is not None:
+    dumping = a.dump is not None or a.dump_write
+    if a.dump_write:
+        out = a.out or os.path.join(work, 'dump_%s_w%x' % (a.machine, a.dump_write[0]))
+    elif a.dump is not None:
         out = a.out or os.path.join(work, 'dump_%s_%g' % (a.machine, a.dump))
     else:
         out = a.out or os.path.join(work, a.machine)
+    out = os.path.abspath(out)              # MAME runs in another directory
     shutil.rmtree(out, ignore_errors=True)
     os.makedirs(out)
     lua = os.path.join(work, 'oracle.lua')
     ts = times(a.at)
     with open(lua, 'w') as f:
-        f.write(DUMP_LUA % (a.dump, a.ram) if a.dump is not None else LUA % ', '.join('%g' % t for t in ts))
+        if a.dump_write:
+            f.write(ITEMS_LUA % () + PORTS_LUA % () + WRITE_LUA % (a.dump_write + (a.ram,)))
+        elif a.dump is not None:
+            f.write(ITEMS_LUA % () + PORTS_LUA % () + DUMP_LUA % (a.dump, a.ram))
+        else:
+            f.write(LUA % ', '.join('%g' % t for t in ts))
     cmd = [mame, a.machine, '-rompath', roms, '-cdrom', CHD,
            '-inipath', work, '-cfg_directory', os.path.join(work, 'cfg'),
            '-nvram_directory', os.path.join(work, 'nvram'), '-snapshot_directory', out,
            '-video', 'none', '-sound', 'none', '-nothrottle', '-skip_gameinfo',
            '-autoboot_script', lua]
-    subprocess.check_call(cmd, cwd=out if a.dump is not None else work)
-    if a.dump is not None:
+    subprocess.check_call(cmd, cwd=out if dumping else work)
+    if dumping:
         print('state.txt and ram.bin in %s' % out)
         return
     snaps = os.path.join(out, a.machine)

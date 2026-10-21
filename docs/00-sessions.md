@@ -47,3 +47,26 @@ submodule of this port at `fmtownskit/`.
   the emitter and the runtime's CPU, and the self-test: the optest 22,340 vectors, the
   game's functions 135, TBIOS's 682, **0 failures**.
 * The oracle dumps state and RAM (`tools/oracle.py --dump SECONDS`).
+
+## Session 3 (2026-10-21): the runtime's machine; the logo, the opening and the title, pixel for pixel
+
+* **The program's first instruction, read** (`tools/oracle.py --dump-write`: MAME stopped at
+  the first push of the entry's `call`, 12.0 s after power-on): the registers RUN386 hands
+  over, the image and **TBIOS byte for byte the disc's** (session 2's 265 differing bytes
+  are the game's own set-up), and the machine's state -- the CRTC, palettes and video
+  registers read through the ports from Lua, the PICs from MAME's save items
+  (`11-runtime.md`).
+* **fmtownskit's machine** (`runtime/towns*`): memory and descriptors, far calls between
+  the program and TBIOS, the program's interrupt handlers at safe points through
+  level-triggered PICs, VSYNC and the beam, the CRTC and video registers, palettes, the
+  VRAM mask and windows, the sprite controller, the RF5C68's channels and the PCM
+  interrupt, DOS and Phar Lap over the disc image, the CD BIOS's TOC, play and stop; a
+  frame composed as MAME's `screen_update` composes it.
+* **The game runs headless** (`src/main.cpp`, `build/rt/tqod`): the CD check passes, TBIOS
+  sets up from the game's calls, the files load, the CD-DA is asked for, and the Agumix
+  logo, its fades, the opening, the title screen with its menu (the font ROM's text) and
+  the attract fight are drawn -- **every still snapshot of the oracle tried matches a
+  runtime frame pixel for pixel** (`tools/framematch.py`). The fight runs; its bouts drift
+  from the oracle's as timing does. 150 s of the game in 1.9 s.
+* One more table of seeds: five routines of the opening, called through a pointer list at
+  0x980E.

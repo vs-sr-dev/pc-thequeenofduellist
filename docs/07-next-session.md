@@ -1,33 +1,40 @@
 # 07 - Next session
 
-Goal: **the runtime's machine, headless, until the game draws its first
-picture** -- the Agumix logo -- and the frame matches the oracle's.
+Where session 3 left it: the game runs headless on fmtownskit's machine from
+its first instruction through the logo, the opening, the title and the
+attract fight, and every still picture matches the oracle's pixel for pixel
+(`11-runtime.md`). Nothing is heard and nothing can be pressed yet.
 
-1. The boot as RUN386 leaves it: the game's image at linear 0x200000 under
-   selectors 0x0C/0x14 (80 KB, stack top 0x13F20), the disc's TBIOS at
-   0x100000 under 0x110/0x118 with its table filled as the Towns' load
-   leaves it (the 265 bytes that differ: read them in the Towns dump of
-   session 2, `build/oracle/dump_fmtowns_20`), the LDT/GDT selectors of
-   `towns.SELECTORS` as bases, the registers at the entry as RUN386 sets
-   them (a dump at the entry: a Lua breakpoint on CS=0x0C, EIP=0xA7F0).
-2. The services, each from what the game and TBIOS ask (`03-executables.md`):
-   int 21h's nine DOS functions over the disc image (`fmtownskit.disc`'s
-   reader in C++, Q: the CD), Phar Lap's six, int 93h's CD-DA calls, int
-   FDh; the real-mode routine at the image's start (int 23h/24h) answered
-   as nothing to do.
-3. The machine under TBIOS: VRAM (512 KB, both access windows), the CRTC
-   and video output registers, the sprite RAM and controller, the palettes;
-   a frame as a PNG from the CRTC's layers. Then the PICs, the timer, VSYNC
-   (IRQ11) and the sound IRQ (13) with the YM3438 timers, delivered at safe
-   points.
-4. Compare the logo, the title and the attract fight with the oracle's
-   frames (`tools/oracle.py --machine fmtowns --at ...`).
+Goal: **the sound, for the user's ears, then the window and the pad**.
 
-The step limit makes the game's own vectors few (135 of 471 runs): a
-second seed and a higher `--limit` are cheap once the machine stubs answer
-the interrupts the runs stop at.
+1. **Sound, headless first** (a WAV next to the frames):
+   * the RF5C68: its samples are already kept (`towns::pcm_take`); mix them
+     at its 20,833 Hz, with the volume ports (0x4E0-0x4E3);
+   * the YM3438: a core for its FM (ymfm, BSD-3, is MAME's own; whatever is
+     taken goes in the kit with its licence), its timers and its status, and
+     IRQ13 for FM if TBIOS turns it on (the game's handler only acts on PCM);
+   * the CD-DA from the image, pregaps included (`Disc::read_audio`), as int
+     93h 50h asks, with its end and repeat (CX=0xFE01: to read);
+   * held against the oracle's sound: `tools/oracle.py` with `-wavwrite` for
+     the same stretch (the logo's jingle, the title's track 10).
+2. **The window**: SDL3, the 704x525 frame at an integer scale (or the
+   640x480 inside it), sound in real time, the guest clock paced by the
+   host's; the pad from the keyboard and a gamepad (the Towns pad: four
+   directions, A, B, Run and Select, active low at 0x4D0/0x4D2 as MAME's
+   townspad answers through the 0x4D6 mask).
+3. **Playable**: a fight from the title, CONFIG, the save (`A:dueltwn.sav` in
+   `save/a/`), the endings; the code the descent does not reach found as the
+   runtime stops on it (the five routines of 0x980E were found that way).
 
-Tools: `tools/oracle.py --dump SECONDS` (state and RAM) and
-`python -m fmtownskit.mamedump DIR`; the recompiler as `09-recompiler.md`
-shows; MSYS2's clang, CMake and Ninja on PATH (`export
-PATH=/c/msys64/mingw64/bin:$PATH`).
+Worth doing on the way:
+
+* discovery finding lists of code pointers like 0x980E itself (a word that
+  points at the start of a decodable function in the code range);
+* a "Towns speed" for loads (the CD at the drive's pace), to hold the attract
+  fight against the oracle frame by frame (`05-open-questions.md` 11).
+
+Tools: `tools/oracle.py` (`--at`, `--dump`, `--dump-write ADDR=VALUE`: state,
+RAM, every device's save items and the video registers through the ports),
+`tools/framematch.py`; the build as `11-runtime.md` shows, with MSYS2's clang,
+CMake and Ninja on PATH (`export PATH=/c/msys64/mingw64/bin:$PATH`) and, while
+the kit is being worked on, `-DFMT_RUNTIME=D:/Homebrew6/fmtownskit/runtime`.
