@@ -60,3 +60,19 @@ and the title, pixel for pixel.
 | `runtime/towns_sdl.*`, `towns.cmake` | the window as an optional library (`fmt_towns_sdl`, SDL3 when found): integer scale, the sound queue as the clock, keyboard and gamepads as the pad |
 
 Checked by the oracle's own sound replayed (`12-sound.md`).
+
+## Since: the kit's second game
+
+fmtownskit grew with its second game, pc-4ddriving (4D Driving; that
+port's `docs/10-fmtownskit.md` has each change): a 386 program's P3 symbol
+table and the x87's escapes (a33c4f2), the machine as a profile (9c1ccd3),
+tables placed after their jump and DOS, Phar Lap and FORRBIOS.NSD services
+(959818b), DOS's finds and free space, the CD BIOS while a track plays,
+and the window's picture and mouse (e4c5334). The submodule is pulled to
+**e4c5334**.
+
+Checked on this game: rebuilt on each, its C++ byte for byte the same; on
+e4c5334 its 3,600 frames and 150 seconds of sound the same as on 959818b,
+byte for byte. The window now shows the picture only (the CRTC's layer
+windows, not MAME's whole frame) at one scale, and has the host's mouse;
+`tqod --crop` saves PNGs the same way.

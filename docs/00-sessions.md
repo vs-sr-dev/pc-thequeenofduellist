@@ -94,3 +94,8 @@ submodule of this port at `fmtownskit/`.
   rounds and her win screen, 150 s without a fault. The user played it in the window: one
   glitch, a column of the CPU's sprite at the left edge when pushed out at the right --
   MAME's clipping, copied; the kit now clips each pixel at its own x (`12-sound.md`).
+
+## Since session 4
+
+The kit pulled to e4c5334 (the second game's: `docs/10-fmtownskit.md`);
+the game the same, frame for frame and in its sound; `--crop`.

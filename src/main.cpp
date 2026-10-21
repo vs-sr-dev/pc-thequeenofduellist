@@ -10,7 +10,8 @@
 // --font: the Towns' font ROM (FMT_FNT.ROM, 256 KB), which the game reads for its menus' text;
 // by default bios/fmtowns/fmt_fnt.rom (the one in MAME's fmtowns set), if it is there.
 // --frames: stop after N frames (headless: 600 if not given; in the window: never).
-// --png, --png-every: the frames to save (they imply --headless).
+// --png, --png-every: the frames to save (they imply --headless); MAME's whole frame, as the
+// oracle's snapshots, or with --crop the picture only, as the window shows it.
 // --wav: the sound (the FM, the PCM and the CD's audio mixed as MAME's fmtowns mixes them), 16-bit
 // stereo at 48 kHz, from the program's first instruction to the last frame.
 // --mute fm,pcm,cd: leave sources out of the mix.
@@ -26,6 +27,7 @@
 #ifdef TQOD_SDL
 #include "towns_sdl.h"
 #endif
+#include <algorithm>
 #include <cstdlib>
 #include <cstring>
 #include <filesystem>
@@ -60,7 +62,7 @@ int main(int argc, char** argv) {
     uint8_t mute = 0;
     std::set<long> at;
     std::vector<Press> presses;
-    bool trace_int = false, trace_io = false, headless = false;
+    bool trace_int = false, trace_io = false, headless = false, crop = false;
 #ifdef TQOD_SDL
     towns::SdlOptions win;
     win.title = "The Queen of Duellist";
@@ -113,6 +115,7 @@ int main(int argc, char** argv) {
         else if (a == "--trace-int") trace_int = true;
         else if (a == "--trace-io") trace_io = true;
         else if (a == "--trace-from") trace_from = std::atol(next().c_str());
+        else if (a == "--crop") crop = true;
         else { std::fprintf(stderr, "unknown option %s\n", a.c_str()); return 2; }
     }
 #ifndef TQOD_SDL
@@ -170,6 +173,15 @@ int main(int argc, char** argv) {
             std::vector<uint32_t> rgb;
             int w, h;
             mm.render(rgb, w, h);
+            if (crop) {                 // the picture only, as the window shows it
+                int x, y, cw, ch;
+                mm.display_area(x, y, cw, ch);
+                std::vector<uint32_t> part((size_t)cw * ch);
+                for (int r = 0; r < ch; ++r)
+                    std::copy_n(rgb.begin() + (long)(y + r) * w + x, cw, part.begin() + (long)r * cw);
+                rgb.swap(part);
+                w = cw; h = ch;
+            }
             char name[64];
             std::snprintf(name, sizeof name, "/f%06ld.png", f);
             towns::write_png(out + name, rgb, w, h);
