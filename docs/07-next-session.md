@@ -1,40 +1,39 @@
 # 07 - Next session
 
-Where session 3 left it: the game runs headless on fmtownskit's machine from
-its first instruction through the logo, the opening, the title and the
-attract fight, and every still picture matches the oracle's pixel for pixel
-(`11-runtime.md`). Nothing is heard and nothing can be pressed yet.
+Where session 4 left it: the game runs in a window with its sound and the
+pad (`build/rt/tqod`), and headless for checks. Its sound is MAME's sample
+for sample where it can be compared (`12-sound.md`); a fight was played from
+the title through two rounds and the opponent's win screen. Nothing yet past
+the first stage, nor the save.
 
-Goal: **the sound, for the user's ears, then the window and the pad**.
+Goal: **playable to the end**.
 
-1. **Sound, headless first** (a WAV next to the frames):
-   * the RF5C68: its samples are already kept (`towns::pcm_take`); mix them
-     at its 20,833 Hz, with the volume ports (0x4E0-0x4E3);
-   * the YM3438: a core for its FM (ymfm, BSD-3, is MAME's own; whatever is
-     taken goes in the kit with its licence), its timers and its status, and
-     IRQ13 for FM if TBIOS turns it on (the game's handler only acts on PCM);
-   * the CD-DA from the image, pregaps included (`Disc::read_audio`), as int
-     93h 50h asks, with its end and repeat (CX=0xFE01: to read);
-   * held against the oracle's sound: `tools/oracle.py` with `-wavwrite` for
-     the same stretch (the logo's jingle, the title's track 10).
-2. **The window**: SDL3, the 704x525 frame at an integer scale (or the
-   640x480 inside it), sound in real time, the guest clock paced by the
-   host's; the pad from the keyboard and a gamepad (the Towns pad: four
-   directions, A, B, Run and Select, active low at 0x4D0/0x4D2 as MAME's
-   townspad answers through the 0x4D6 mask).
-3. **Playable**: a fight from the title, CONFIG, the save (`A:dueltwn.sav` in
-   `save/a/`), the endings; the code the descent does not reach found as the
-   runtime stops on it (the five routines of 0x980E were found that way).
+1. **The user's eyes and ears on the window**: the picture's scale, the
+   sound's latency (three frames queued), the keys and the gamepad mapping
+   (X = A, Z = B, Enter = Run; East = A, South = B), and anything that sounds
+   or looks other than the Towns.
+2. **The game played through**, headless with `--input` and by hand: the
+   fighter select's both sides, every stage and opponent, the endings, VS
+   MODE (two pads), CONFIG, CG MODE; each new file and CD-DA track noted
+   (`05-open-questions.md` 9); the code the descent does not reach found as
+   the runtime stops on it (seeds, as 0x980E's).
+3. **The save** (`A:dueltwn.sav`, in `save/a/`): when it is written and what
+   it holds (`05-open-questions.md` 8).
+4. **The CD BIOS's other calls** if the game makes them: 53h and 55h (a
+   status, *inferred*: the end of a track; the code at 0xC778 and 0xC796),
+   and what a play's CX=0xFE01 asks (a repeat?) once a track is let run out.
 
 Worth doing on the way:
 
-* discovery finding lists of code pointers like 0x980E itself (a word that
-  points at the start of a decodable function in the code range);
-* a "Towns speed" for loads (the CD at the drive's pace), to hold the attract
-  fight against the oracle frame by frame (`05-open-questions.md` 11).
+* the window: a choice of the 640x480 inside the frame (the game draws in
+  x 42-681, y 33-480 of the 704x525), smooth scaling, a key for a PNG;
+* a "Towns speed" for loads, to hold the attract fight against the oracle
+  (`05-open-questions.md` 11);
+* the README's sweep before publishing (no personal paths), on the user's
+  word.
 
-Tools: `tools/oracle.py` (`--at`, `--dump`, `--dump-write ADDR=VALUE`: state,
-RAM, every device's save items and the video registers through the ports),
-`tools/framematch.py`; the build as `11-runtime.md` shows, with MSYS2's clang,
-CMake and Ninja on PATH (`export PATH=/c/msys64/mingw64/bin:$PATH`) and, while
-the kit is being worked on, `-DFMT_RUNTIME=D:/Homebrew6/fmtownskit/runtime`.
+Tools: `tools/oracle.py` (`--at`, `--dump`, `--dump-write`, `--wav`,
+`--sound-log`, `--lua`), `tools/framematch.py` (the entry at 12.308 s),
+`tqod --headless --input F-G:BUTTONS --trace-int --trace-from F`,
+`tqod --replay-sound LOG`; the build as `11-runtime.md` shows, with MSYS2's
+clang, CMake, Ninja and SDL3 (`export PATH=/c/msys64/mingw64/bin:$PATH`).

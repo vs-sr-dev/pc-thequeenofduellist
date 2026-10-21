@@ -70,3 +70,27 @@ submodule of this port at `fmtownskit/`.
   from the oracle's as timing does. 150 s of the game in 1.9 s.
 * One more table of seeds: five routines of the opening, called through a pointer list at
   0x980E.
+
+## Session 4 (2026-10-21): the sound, held against MAME's; the window, the pad; a fight played
+
+* **The oracle's sound** (`tools/oracle.py --wav`, `--sound-log`): MAME's WAV and every
+  write to the sound ports and the wave RAM, timed. The game's music is CD-DA, its PCM the
+  fight's voices; the YM3438 is set up and never keyed on; the logo is silent
+  (`12-sound.md`).
+* **fmtownskit's sound** (`runtime/towns_sound.cpp`): the RF5C68, the YM3438 on ymfm
+  (BSD-3, `runtime/ymfm/`), the CD's audio from the image, the volume ports, a mix at
+  48 kHz as MAME's speakers have it. Held against the oracle by replaying its log
+  (`tqod --replay-sound`): the CD-DA at 0.09% residual, the PCM at correlation 0.989 with
+  every band's power 0.98-1.01 of MAME's, two FM notes (`tools/fmtest.lua`) at 0.03% --
+  once the kit took MAME's whole stream rates (20,833 Hz, not 20,833.3) and its resampling
+  (a held sample averaged over the output's span). The game's own opening track: 0.999.
+* **The oracle's clock, corrected**: its Lua read whole seconds. The program's first
+  instruction is at 12.308 s, not 12.0; the fractional snapshots retaken, all 15 still
+  pixel-identical.
+* **The window** (`runtime/towns_sdl.cpp`, SDL3 static): integer scale, the guest paced by
+  the sound queue, the keyboard and gamepads as the Towns pad (Run = left+right, Select =
+  up+down, as MAME's townspad). `tqod` opens it; `--headless` as before.
+* **Played** (`--input`): A on START, the fighter select, Stage 1 against Shinobu, two
+  rounds and her win screen, 150 s without a fault. The user played it in the window: one
+  glitch, a column of the CPU's sprite at the left edge when pushed out at the right --
+  MAME's clipping, copied; the kit now clips each pixel at its own x (`12-sound.md`).

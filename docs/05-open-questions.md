@@ -26,7 +26,10 @@
 8. **The save**: what `A:dueltwn.sav` holds, when it is written (CONFIG?),
    and what the game does when A: has no disk (int 24h fails the call).
 9. **The nine CD-DA tracks**: which plays where. Track 10 is the opening's
-   and the title's (session 3).
+   and the title's (session 3); track 6 the attract fight's and Stage 1's
+   (Shinobu), track 9 (11.5 s) the stage's caption, track 3 the oracle's
+   second attract bout (session 4). Tracks 2, 4, 5, 7, 8: the other stages
+   and the endings, *inferred*.
 10. **The 3 KB of the code range the descent does not reach**: dead code, or
     reached through the 12 indirect transfers?
 11. **The attract fight's timing**: its bouts drift from the oracle's (other

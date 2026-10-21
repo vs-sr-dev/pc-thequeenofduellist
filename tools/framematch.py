@@ -9,7 +9,7 @@ A side-by-side sheet (oracle | runtime | the pixels that differ) is written too.
     build/rt/tqod --frames 600 --png-every 1 --out build/frames
     python tools/framematch.py build/oracle/cmp/fmtowns build/frames --at 13,15.5,19,22
 
-Frame F of the runtime is the oracle's 12.0 + F/60 s (the program's first instruction on
+Frame F of the runtime is the oracle's 12.308 + F/60 s (the program's first instruction on
 MAME's fmtowns): "ahead" is how much sooner the runtime showed it. Needs PIL and numpy.
 """
 import argparse
@@ -18,7 +18,7 @@ import os
 import numpy as np
 from PIL import Image, ImageDraw
 
-ENTRY = 12.0
+ENTRY = 12.308
 
 
 def main():

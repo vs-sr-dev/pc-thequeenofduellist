@@ -47,3 +47,16 @@ Kit at the session's commit: see `git -C fmtownskit log -1`.
 
 Checked by the game's frames against the oracle's (`11-runtime.md`): the logo, the opening
 and the title, pixel for pixel.
+
+## Session 4
+
+| Change | What this game asked of it |
+|---|---|
+| `runtime/towns_sound.cpp` | the sound out of `towns_io`: the RF5C68 (an event at MAME's whole 20,833 Hz), the YM3438 on ymfm with its timers, busy flag and IRQ13 share, the CD's audio from the image (play, stop, its end), the volume ports as MAME's `cdda_db_to_gain`, the mix at 48 kHz (MAME's routes, its held-and-averaged resampling), `audio_take`, `audio_mute`, a WAV writer, `replay_sound_log` (an oracle's log into the chips) |
+| `runtime/ymfm/` | ymfm's OPN files (Aaron Giles, BSD-3, its LICENSE), unchanged from MAME's 3rdparty copy |
+| `towns_io`, `towns.h` | the sound ports handed to `towns_sound`; `set_pad` and the `kPad*` buttons (Run and Select as MAME's townspad wires them) |
+| `towns_dos` | int 93h 50h/52h play and stop the CD's audio |
+| `towns_video` | a 16-colour sprite's second pixel clipped at its own x, not at the first's as MAME does (a column of a mirrored sprite at x 256 wrapped to the left edge) |
+| `runtime/towns_sdl.*`, `towns.cmake` | the window as an optional library (`fmt_towns_sdl`, SDL3 when found): integer scale, the sound queue as the clock, keyboard and gamepads as the pad |
+
+Checked by the oracle's own sound replayed (`12-sound.md`).

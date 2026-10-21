@@ -19,6 +19,10 @@ target_compile_options(game_recomp PRIVATE -Wno-unused-label -Wno-unused-variabl
 
 add_executable(tqod src/main.cpp ${RECOMP_DIR}/modules.cpp)
 target_link_libraries(tqod game_recomp fmt_towns)
+if(TARGET fmt_towns_sdl)               # the window, when SDL3 is there (towns.cmake)
+  target_link_libraries(tqod fmt_towns_sdl)
+  target_compile_definitions(tqod PRIVATE TQOD_SDL=1)
+endif()
 if(MINGW)
-  target_link_options(tqod PRIVATE -static-libgcc -static-libstdc++)
+  target_link_options(tqod PRIVATE -static)
 endif()

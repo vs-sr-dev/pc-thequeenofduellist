@@ -26,7 +26,7 @@ CHD_SHA1 = '543729bca29f426ceb807eb6ea3e5fc0cfaf064d'   # MAME's software list, 
 LUA = """local times = {%s}
 local i = 1
 emu.register_frame_done(function()
-    if i <= #times and manager.machine.time.seconds >= times[i] then
+    if i <= #times and manager.machine.time:as_double() >= times[i] then
         manager.machine.video:snapshot()
         i = i + 1
         if i > #times then manager.machine:exit() end
@@ -38,13 +38,13 @@ end)
 # on (RUN386 drops to real mode for DOS), the CPU state and physical RAM.
 DUMP_LUA = """local at, size, done = %g, %d, false
 emu.register_frame_done(function()
-    if done or manager.machine.time.seconds < at then return end
+    if done or manager.machine.time:as_double() < at then return end
     local cpu = manager.machine.devices[":maincpu"]
     if (cpu.state["CR0"].value & 0x80000001) ~= 0x80000001 then return end
     done = true
     local f = io.open("state.txt", "w")
     for k, v in pairs(cpu.state) do f:write(string.format("%%s=%%x\\n", k, v.value)) end
-    f:write(string.format("TIME=%%x\\n", math.floor(manager.machine.time.seconds * 1000)))
+    f:write(string.format("TIME=%%x\\n", math.floor(manager.machine.time:as_double() * 1000)))
     f:close()
     local sp, r = cpu.spaces["program"], io.open("ram.bin", "wb")
     for a = 0, size - 1, 0x10000 do r:write(sp:read_range(a, a + 0xffff, 8)) end
@@ -67,7 +67,7 @@ tap = sp:install_write_tap(addr, addr + 3, "oracle", function(offset, data, mask
     done = true
     local f = io.open("state.txt", "w")
     for k, v in pairs(cpu.state) do f:write(string.format("%%s=%%x\\n", k, v.value)) end
-    f:write(string.format("TIME=%%x\\n", math.floor(manager.machine.time.seconds * 1000)))
+    f:write(string.format("TIME=%%x\\n", math.floor(manager.machine.time:as_double() * 1000)))
     f:close()
     local r = io.open("ram.bin", "wb")
     for a = 0, size - 1, 0x10000 do r:write(sp:read_range(a, a + 0xffff, 8)) end
@@ -77,6 +77,25 @@ tap = sp:install_write_tap(addr, addr + 3, "oracle", function(offset, data, mask
     manager.machine:exit()
 end)
 """
+
+# Every write to the sound ports (0x4C0-0x4FF: the CD controller, the pad mask, the YM3438,
+# the volumes, the PCM's control and the RF5C68) with its time in microseconds, to sound.log:
+# the dword's offset, the data and the byte mask, as the 386's io space sees them; and every
+# write to the RF5C68's wave RAM window (physical, the machine's own address) as "m OFFSET...".
+# Replayed by the runtime (tqod --replay-sound), it is the oracle's sound without the game.
+SOUND_LUA = """
+local slog = io.open("sound.log", "w")
+local cpu = manager.machine.devices[":maincpu"]
+local function now() return math.floor(manager.machine.time:as_double() * 1e6) end
+stap = cpu.spaces["io"]:install_write_tap(0x4c0, 0x4ff, "soundlog", function(offset, data, mask)
+    slog:write(string.format("%%d %%x %%x %%x\\n", now(), offset, data, mask))
+end)
+wtap = cpu.spaces["program"]:install_write_tap(0x%x, 0x%x, "wavelog", function(offset, data, mask)
+    slog:write(string.format("%%d m %%x %%x %%x\\n", now(), offset, data, mask))
+end)
+emu.register_frame_done(function() slog:flush() end)
+"""
+WAVE_RAM = {'fmtowns': 0xC2200000, 'fmtownsux': 0xC2200000, 'fmtmarty': 0xF80000, 'fmtmarty2': 0xF80000}
 
 # Every device's save-state items (MAME's own state of the machine: the CRTC's and video
 # registers, palettes, the PICs, the sound chips...): small ones as hex in items.txt, large
@@ -184,6 +203,12 @@ def main():
                     help='instead of snapshots: state.txt and ram.bin at the first write of VALUE to '
                          'physical ADDR (hex; a dword), in protected mode with paging on')
     ap.add_argument('--ram', type=lambda x: int(x, 0), default=0x200000, help='bytes of RAM to dump')
+    ap.add_argument('--wav', metavar='FILE', help="MAME's sound output to FILE (-wavwrite, 48 kHz) up to the last --at")
+    ap.add_argument('--sound-log', action='store_true',
+                    help='every write to ports 0x4C0-0x4FF and to the wave RAM, timed, to sound.log '
+                         'in the output directory')
+    ap.add_argument('--lua', metavar='FILE', action='append', default=[],
+                    help='a Lua script of your own, run after the rest (e.g. tools/fmtest.lua)')
     a = ap.parse_args()
     if a.dump_write:
         wa, _, wv = a.dump_write.partition('=')
@@ -213,12 +238,20 @@ def main():
             f.write(ITEMS_LUA % () + PORTS_LUA % () + DUMP_LUA % (a.dump, a.ram))
         else:
             f.write(LUA % ', '.join('%g' % t for t in ts))
+        if a.sound_log:
+            w = WAVE_RAM[a.machine]
+            f.write(SOUND_LUA % (w, w + 0xFFF))
+        for extra in a.lua:
+            with open(extra) as g:
+                f.write('\n' + g.read())
     cmd = [mame, a.machine, '-rompath', roms, '-cdrom', CHD,
            '-inipath', work, '-cfg_directory', os.path.join(work, 'cfg'),
            '-nvram_directory', os.path.join(work, 'nvram'), '-snapshot_directory', out,
            '-video', 'none', '-sound', 'none', '-nothrottle', '-skip_gameinfo',
            '-autoboot_script', lua]
-    subprocess.check_call(cmd, cwd=out if dumping else work)
+    if a.wav:
+        cmd += ['-wavwrite', os.path.abspath(a.wav), '-samplerate', '48000']
+    subprocess.check_call(cmd, cwd=out if (dumping or a.sound_log) else work)
     if dumping:
         print('state.txt and ram.bin in %s' % out)
         return

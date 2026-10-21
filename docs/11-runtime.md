@@ -24,8 +24,10 @@ disc at the start (each module's CRC32 against the file's).
 `tools/oracle.py --dump-write 5cf1c=a7f5` stops MAME's `fmtowns` at the first
 write of 0xA7F5 to physical 0x5CF1C: the program's first instruction, `call
 0xcf07` at 0xA7F0, pushing its return address (the image is at physical
-0x49000, its stack top 0x13F20). That happens **12.0 seconds** after power-on,
-and there:
+0x49000, its stack top 0x13F20). That happens **12.308 seconds** after
+power-on (session 4: session 3's Lua read `machine.time.seconds`, the whole
+seconds only, and wrote 12.0; `time:as_double()` gives the fraction), and
+there:
 
 * every general register is 0, EFLAGS 0x202, ESP 0x13F20; CS 0x0C, and DS, ES,
   FS, GS and SS all 0x14;
@@ -68,7 +70,7 @@ registers are read through the ports instead (`ports.txt`).
 * **The CD BIOS** (`03-executables.md`): 54h, the table of contents, in the
   format the oracle's buffer shows; 50h, play from an MSF to an MSF (the
   opening and the title play track 10, from its INDEX 01 to the frame before
-  the lead-out); 52h, stop. Nothing is heard yet.
+  the lead-out); 52h, stop. Heard since session 4 (`12-sound.md`).
 * **The font ROM**: the menus' text is drawn from the Towns' font ROM, read
   at 0xC2100000 (ANK at +0x3D000, kanji at +0x4000): `--font`, the user's own
   (BYOA); the default is `bios/fmtowns/fmt_fnt.rom`, the one in MAME's
@@ -95,7 +97,8 @@ snapshots it).
 * **The Agumix logo, its fades, the opening, the title screen with its menu,
   and every other still picture tried: the same, pixel for pixel**, at 13,
   14, 15.5, 18, 19 (the logo half faded), 22, 25, 28, 32, 37, 42, 52, 62, 63
-  and 70 seconds of the oracle.
+  and 70 seconds of the oracle (retaken in session 4: session 3's 15.5 was in
+  fact taken at 16, its Lua reading whole seconds; all 15 match again).
 * **The attract fight** (from about 80 seconds of the oracle): it runs, its
   sprites, the HUD, the backgrounds and their scroll all drawn; the frames
   closest to the oracle's differ in 4 to 7% of their pixels in the first
@@ -120,10 +123,8 @@ beam's position for CRTC register 30 and the FM-R status ports; the
 free-running microsecond counter; the CRTC, video output and FM-R registers,
 the three palettes, the VRAM write mask and its two windows; the sprite
 controller (its page flip at VSYNC and its drawing after it, as MAME's); the
-RF5C68's channels stepping at its 20,833 Hz with the PCM interrupt
-(IRQ13) at the last byte of a 4 KB block, as MAME's end callback, and its
-samples kept; the YM3438 as registers only (never busy, no timers); the pad
-ports with nothing pressed. The frame is composed as MAME's `screen_update`
+sound (session 4, `12-sound.md`: the RF5C68, the YM3438 on ymfm, the CD's
+audio, their mix); the pad (session 4). The frame is composed as MAME's `screen_update`
 does it (its 16-colour, 256-colour and 15-bit scan lines, layer priority and
 transparency): what the oracle shows is what MAME draws, so the runtime draws
 it the same way.
