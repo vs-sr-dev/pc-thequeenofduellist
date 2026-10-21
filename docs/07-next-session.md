@@ -36,4 +36,4 @@ Tools: `tools/oracle.py` (`--at`, `--dump`, `--dump-write`, `--wav`,
 `--sound-log`, `--lua`), `tools/framematch.py` (the entry at 12.308 s),
 `tqod --headless --input F-G:BUTTONS --trace-int --trace-from F`,
 `tqod --replay-sound LOG`; the build as `11-runtime.md` shows, with MSYS2's
-clang, CMake, Ninja and SDL3 (`export PATH=/c/msys64/mingw64/bin:$PATH`).
+clang, CMake, Ninja and SDL3 (its mingw64 `bin` first on the PATH).
